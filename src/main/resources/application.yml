@@ -1,18 +1,29 @@
 spring:
   application:
     name: ms-operaciones
-
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:db_operaciones}
     username: ${DB_USER:cordytech}
     password: ${DB_PASS:cordytech123}
     driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: update
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+
+# URLs de microservicios para comunicación directa
+ms-buque:
+  url: ${MS_BUQUE_URL:http://localhost:8083}
+ms-puerto:
+  url: ${MS_PUERTO_URL:http://localhost:8082}
+ms-user:
+  url: ${MS_USER_URL:http://localhost:8081}
 
 server:
   port: 8084

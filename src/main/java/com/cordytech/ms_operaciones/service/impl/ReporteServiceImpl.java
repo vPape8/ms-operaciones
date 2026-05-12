@@ -2,35 +2,30 @@ package com.cordytech.ms_operaciones.service.impl;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.text.NumberFormat;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import com.cordytech.ms_operaciones.dto.BoletaResponse;
+import com.cordytech.ms_operaciones.dto.mq.ReporteRequest;
+import com.cordytech.ms_operaciones.service.RabbitMQProducerService;
 import com.cordytech.ms_operaciones.service.ReporteService;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class ReporteServiceImpl implements ReporteService {
 
-    private final JavaMailSender mailSender;
-
-    @Value("${spring.mail.username}")
-    private String emailFrom;
+    private final RabbitMQProducerService rabbitMQProducerService;
 
     @Override
     public ResponseEntity<byte[]> generarReportePDF(List<BoletaResponse> boletas) {
@@ -92,26 +87,15 @@ public class ReporteServiceImpl implements ReporteService {
 
     @Override
     public void enviarBoletaPorEmail(BoletaResponse boleta, String emailDestino) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-            
-            helper.setFrom(emailFrom);
-            helper.setTo(emailDestino);
-            helper.setSubject("Boleta Portuaria - " + boleta.getIdBoleta());
-            
-            String textoEmail = generarTextoEmailBoleta(boleta);
-            helper.setText(textoEmail, true);
-            
-            // Adjuntar el PDF de la boleta
-            ResponseEntity<byte[]> pdfResponse = generarBoletaPDF(boleta);
-            ByteArrayResource pdfResource = new ByteArrayResource(pdfResponse.getBody(), "boleta_" + boleta.getIdBoleta() + ".pdf");
-            helper.addAttachment("boleta_" + boleta.getIdBoleta() + ".pdf", pdfResource);
-            
-            mailSender.send(message);
-        } catch (MessagingException e) {
-            throw new RuntimeException("Error enviando email", e);
-        }
+        // Enviar solicitud a la cola de RabbitMQ para procesamiento asíncrono
+        ReporteRequest reporteRequest = new ReporteRequest();
+        reporteRequest.setIdBoleta(boleta.getIdBoleta());
+        reporteRequest.setTipoReporte("PDF");
+        reporteRequest.setEmailDestinatario(emailDestino);
+        reporteRequest.setFechaSolicitud(LocalDateTime.now());
+        reporteRequest.setFormato("A4");
+        
+        rabbitMQProducerService.enviarReporteQueue(reporteRequest);
     }
 
     private String generarContenidoPDFReporte(List<BoletaResponse> boletas) {
@@ -120,8 +104,8 @@ public class ReporteServiceImpl implements ReporteService {
         contenido.append("Fecha de generación: ").append(java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))).append("\n\n");
         
         NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("es", "CL"));
-        double totalGeneral = 0.0;
-        
+        BigDecimal totalGeneral = BigDecimal.ZERO;
+
         for (BoletaResponse boleta : boletas) {
             contenido.append("ID Boleta: ").append(boleta.getIdBoleta()).append("\n");
             contenido.append("Fecha Emisión: ").append(boleta.getFechaEmision().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))).append("\n");
@@ -130,7 +114,7 @@ public class ReporteServiceImpl implements ReporteService {
             contenido.append("Monto: ").append(currencyFormat.format(boleta.getMonto())).append("\n");
             contenido.append("Estado: ").append(boleta.getEstado()).append("\n");
             contenido.append("----------------------------------------\n");
-            totalGeneral += boleta.getMonto();
+            totalGeneral = totalGeneral.add(boleta.getMonto());
         }
         
         contenido.append("\nTOTAL GENERAL: ").append(currencyFormat.format(totalGeneral)).append("\n");
@@ -180,31 +164,5 @@ public class ReporteServiceImpl implements ReporteService {
         }
         
         return contenido.toString();
-    }
-
-    private String generarTextoEmailBoleta(BoletaResponse boleta) {
-        StringBuilder texto = new StringBuilder();
-        texto.append("<html><body>");
-        texto.append("<h2>Boleta Portuaria Generada</h2>");
-        texto.append("<p>Estimado/a,</p>");
-        texto.append("<p>Se ha generado una nueva boleta portuaria con los siguientes detalles:</p>");
-        
-        texto.append("<table border='1' style='border-collapse: collapse; width: 100%;'>");
-        texto.append("<tr><td><strong>ID Boleta:</strong></td><td>").append(boleta.getIdBoleta()).append("</td></tr>");
-        texto.append("<tr><td><strong>Fecha Emisión:</strong></td><td>").append(boleta.getFechaEmision().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))).append("</td></tr>");
-        
-        texto.append("<tr><td><strong>Código Buque:</strong></td><td>").append(boleta.getCodBuque()).append("</td></tr>");
-        texto.append("<tr><td><strong>ID Puerto:</strong></td><td>").append(boleta.getIdPuerto()).append("</td></tr>");
-        
-        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("es", "CL"));
-        texto.append("<tr><td><strong>Monto:</strong></td><td>").append(currencyFormat.format(boleta.getMonto())).append("</td></tr>");
-        texto.append("<tr><td><strong>Estado:</strong></td><td>").append(boleta.getEstado()).append("</td></tr>");
-        texto.append("</table>");
-        
-        texto.append("<p>El PDF de la boleta se adjunta a este correo.</p>");
-        texto.append("<p>Saludos cordiales,<br>Sistema de Operaciones Portuarias</p>");
-        texto.append("</body></html>");
-        
-        return texto.toString();
     }
 }

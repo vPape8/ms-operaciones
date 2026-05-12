@@ -1,10 +1,11 @@
 package com.cordytech.ms_operaciones.service;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 import com.cordytech.ms_operaciones.dto.BoletaRequest;
 import com.cordytech.ms_operaciones.dto.BoletaResponse;
 import com.cordytech.ms_operaciones.dto.SimulacionRequest;
-
-import java.util.List;
 
 public interface BoletaService {
 
@@ -26,7 +27,7 @@ public interface BoletaService {
     /**
      * Simula un cálculo sin guardar en la base de datos
      */
-    Double simularCalculo(SimulacionRequest request);
+    BigDecimal simularCalculo(SimulacionRequest request);
 
     /**
      * Elimina una boleta por su ID

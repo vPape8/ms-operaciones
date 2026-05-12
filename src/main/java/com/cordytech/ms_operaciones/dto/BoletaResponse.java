@@ -1,5 +1,6 @@
 package com.cordytech.ms_operaciones.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.cordytech.ms_operaciones.model.Boleta;
@@ -15,7 +16,7 @@ public class BoletaResponse {
 
     private Long idBoleta;
     private LocalDateTime fechaEmision;
-    private Double monto;
+    private BigDecimal monto;
     private String estado;
     private String codBuque;
     private Long idPuerto;

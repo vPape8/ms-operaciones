@@ -1,5 +1,6 @@
 package com.cordytech.ms_operaciones.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -66,8 +67,8 @@ public class BoletaController {
     }
 
     @PostMapping("/simular")
-    public ResponseEntity<Double> simular(@Valid @RequestBody SimulacionRequest request) {
-        Double resultado = boletaService.simularCalculo(request);
+    public ResponseEntity<BigDecimal> simular(@Valid @RequestBody SimulacionRequest request) {
+        BigDecimal resultado = boletaService.simularCalculo(request);
         return ResponseEntity.ok(resultado);
     }
 
