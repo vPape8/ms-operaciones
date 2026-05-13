@@ -1,5 +1,6 @@
 package com.cordytech.ms_operaciones.service.impl;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -53,15 +54,23 @@ public class BoletaServiceImpl implements BoletaService {
         BuqueDTO buque = externalApiService.obtenerBuque(request.getCodBuque());
         PuertoDTO puerto = externalApiService.obtenerPuerto(request.getIdPuerto());
 
+        // Validar que los datos existan
+        if (buque == null) {
+            throw new IllegalArgumentException("Buque no encontrado: " + request.getCodBuque());
+        }
+        if (puerto == null) {
+            throw new IllegalArgumentException("Puerto no encontrado: " + request.getIdPuerto());
+        }
+
         // Validar funcionario
         if (!externalApiService.validarFuncionario(request.getIdFuncionario())) {
-            throw new RuntimeException("Funcionario no válido");
+            throw new IllegalArgumentException("Funcionario no válido: " + request.getIdFuncionario());
         }
 
         // Calcular monto
-        Double monto = calculoPortuarioService.calcularMontoBoleta(
+        BigDecimal monto = BigDecimal.valueOf(calculoPortuarioService.calcularMontoBoleta(
                 buque, puerto, request.getDiasEstancia(), request.getTipoServicio()
-        );
+        ));
 
         // Crear y guardar boleta
         Boleta boleta = new Boleta();
@@ -79,14 +88,14 @@ public class BoletaServiceImpl implements BoletaService {
     }
 
     @Override
-    public Double simularCalculo(SimulacionRequest request) {
+    public BigDecimal simularCalculo(SimulacionRequest request) {
         // Obtener datos de APIs externas
         BuqueDTO buque = externalApiService.obtenerBuque(request.getCodBuque());
         PuertoDTO puerto = externalApiService.obtenerPuerto(request.getIdPuerto());
 
-        return calculoPortuarioService.calcularMontoBoleta(
+        return BigDecimal.valueOf(calculoPortuarioService.calcularMontoBoleta(
                 buque, puerto, request.getDiasEstancia(), request.getTipoServicio()
-        );
+        ));
     }
 
     @Override

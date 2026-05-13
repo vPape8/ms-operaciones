@@ -1,5 +1,6 @@
 package com.cordytech.ms_operaciones.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -9,7 +10,6 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,10 +27,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/boletas")
+@RequestMapping("/api/operaciones")
 @RequiredArgsConstructor
 @Validated
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class BoletaController {
 
     private final BoletaService boletaService;
@@ -66,8 +65,8 @@ public class BoletaController {
     }
 
     @PostMapping("/simular")
-    public ResponseEntity<Double> simular(@Valid @RequestBody SimulacionRequest request) {
-        Double resultado = boletaService.simularCalculo(request);
+    public ResponseEntity<BigDecimal> simular(@Valid @RequestBody SimulacionRequest request) {
+        BigDecimal resultado = boletaService.simularCalculo(request);
         return ResponseEntity.ok(resultado);
     }
 
