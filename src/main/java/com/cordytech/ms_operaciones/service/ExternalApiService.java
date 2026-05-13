@@ -11,22 +11,31 @@ public class ExternalApiService {
 
     private final RestTemplate restTemplate;
 
-    @Value("${ms-buque.url:http://localhost:8082}")
+    @Value("${ms-buque.url:http://localhost:8083}")
     private String buqueServiceUrl;
 
-    @Value("${ms-puerto.url:http://localhost:8081}")
+    @Value("${ms-puerto.url:http://localhost:8082}")
     private String puertoServiceUrl;
 
-    public ExternalApiService() {
-        this.restTemplate = new RestTemplate();
+    @Value("${ms-user.url:http://localhost:8081}")
+    private String userServiceUrl;
+
+    public ExternalApiService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
     }
 
     public BuqueDTO obtenerBuque(String codBuque) {
         try {
-            return restTemplate.getForObject(
+            // Llamada directa al microservicio (no usar BFF para comunicación entre microservicios)
+            BuqueDTO buque = restTemplate.getForObject(
                 buqueServiceUrl + "/api/buques/" + codBuque,
                 BuqueDTO.class
             );
+            
+            if (buque == null) {
+                throw new RuntimeException("Buque no encontrado: " + codBuque);
+            }
+            return buque;
         } catch (Exception e) {
             // Fallback: retornar un buque mock para desarrollo
             BuqueDTO buque = new BuqueDTO();
@@ -42,10 +51,16 @@ public class ExternalApiService {
 
     public PuertoDTO obtenerPuerto(Long idPuerto) {
         try {
-            return restTemplate.getForObject(
+            // Llamada directa al microservicio (no usar BFF para comunicación entre microservicios)
+            PuertoDTO puerto = restTemplate.getForObject(
                 puertoServiceUrl + "/api/puertos/" + idPuerto,
                 PuertoDTO.class
             );
+            
+            if (puerto == null) {
+                throw new RuntimeException("Puerto no encontrado: " + idPuerto);
+            }
+            return puerto;
         } catch (Exception e) {
             // Fallback: retornar un puerto mock para desarrollo
             PuertoDTO puerto = new PuertoDTO();
@@ -67,11 +82,12 @@ public class ExternalApiService {
 
     public boolean validarFuncionario(Long idFuncionario) {
         try {
-            // Llamar a ms-user para validar funcionario
-            return restTemplate.getForObject(
-                "http://localhost:8083/api/usuarios/" + idFuncionario + "/exists",
+            // Llamada directa al microservicio (no usar BFF para comunicación entre microservicios)
+            Boolean exists = restTemplate.getForObject(
+                userServiceUrl + "/api/usuarios/" + idFuncionario + "/exists",
                 Boolean.class
             );
+            return exists != null && exists;
         } catch (Exception e) {
             // Fallback: aceptar cualquier funcionario para desarrollo
             return true;
